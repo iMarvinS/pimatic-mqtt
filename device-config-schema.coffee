@@ -305,4 +305,48 @@ module.exports = {
         type: "boolean"
         default: false
   }
+  MqttRGBLight: {
+  title: "MqttRGBLight config options"
+  type: "object"
+  properties:
+    power:
+      properties:
+        topic:
+          description: "Topic for control state"
+          type: "string"
+        stateTopic:
+          description: "Topic that communicates state, if exists"
+          type: "string"
+          default: ""
+        onMessage:
+          description: "Message to switch on when topic is defined"
+          type: "string"
+          default: "1"
+        offMessage:
+          description: "Message to switch off when topic is defined"
+          type: "string"
+          default: "0"
+        retain:
+          description: "If the published message should have the retain flag on or not."
+          type: "boolean"
+          default: false
+    color:
+      properties:
+        topic:
+          description: "Topic for color"
+          type: "string"
+          required: true
+        stateTopic:
+          description: "Topic that communicates color state, if exists"
+          type: "string"
+        retain:
+          description: "If the published message should have the retain flag on or not."
+          type: "boolean"
+          default: false
+    qos:
+      description: "The QoS level of the topic and stateTopic(if exist). Default is 0 and also be used to publishing messages."
+      type: "number"
+      default: 0
+      enum: [0, 1, 2]
+  }
 }

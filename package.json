@@ -24,8 +24,9 @@
   },
   "configSchema": "mqtt-config-schema.coffee",
   "dependencies": {
-    "mqtt": ">=2.0.0",
-    "flat": ">=2.0.0"
+    "color": "^3.0.0",
+    "flat": ">=2.0.0",
+    "mqtt": ">=2.0.0"
   },
   "engines": {
     "node": ">= 4",
