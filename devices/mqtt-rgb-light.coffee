@@ -1,54 +1,54 @@
 module.exports = (env) ->
 
-  Promise = env.require 'bluebird'
-  t = env.require('decl-api').types
-  _ = env.require('lodash')
-  assert = require 'cassert'
-  Color = require 'color'
+  Promise = env.require "bluebird"
+  t = env.require("decl-api").types
+  _ = env.require("lodash")
+  assert = require "cassert"
+  Color = require "color"
 
   class MqttRGBLight extends env.devices.Device
-    #getTemplateName: -> 'led-light'
-    #template: 'led-light'
+    #getTemplateName: -> "led-light"
+    #template: "led-light"
 
     attributes:
       power:
-        description: 'the current state of the light'
+        description: "the current state of the light"
         type: t.boolean
-        labels: ['on', 'off']
+        labels: ["on", "off"]
       color:
-        description: 'color of the light'
+        description: "color of the light"
         type: t.string
-        unit: 'hex color'
+        unit: "hex color"
       mode:
-        description: 'mode of the light'
+        description: "mode of the light"
         type: t.boolean
-        labels: ['color', 'white']
+        labels: ["color", "white"]
       brightness:
-       description: 'brightness of the light'
+       description: "brightness of the light"
        type: t.number
-       unit: '%'
+       unit: "%"
 
     actions:
       getPower:
-        description: 'returns the current state of the light'
+        description: "returns the current state of the light"
         returns:
           state:
             type: t.boolean
       turnOn:
-        description: 'turns the light on'
+        description: "turns the light on"
       turnOff:
-        description: 'turns the light off'
+        description: "turns the light off"
       toggle:
-        description: 'turns the light on or off'
+        description: "turns the light on or off"
       setWhite:
-        description: 'set the light to white color'
+        description: "set the light to white color"
       setColor:
-        description: 'set a light color'
+        description: "set a light color"
         params:
           colorCode:
             type: t.string
       setBrightness:
-        description: 'set the light brightness'
+        description: "set the light brightness"
         params:
           brightnessValue:
             type: t.number
@@ -62,30 +62,31 @@ module.exports = (env) ->
       @id = @config.id
 
       @power = initState?.power or false
-      @color = initState?.color or ''
+      @color = initState?.color or ""
       @brightness = initState?.brightness or 100
+      @mode = initState?.mode or "color"
 
       if @mqttclient.connected
         @onConnect()
 
-      @mqttclient.on('connect', =>
+      @mqttclient.on("connect", =>
         @onConnect()
       )
 
       if @config.power.stateTopic
-        @mqttclient.on('message', (topic, message) =>
+        @mqttclient.on("message", (topic, message) =>
           if @config.power.stateTopic ==  topic
             switch message.toString()
               when @config.power.onMessage
-                @_setAttribute('power', true)
+                @_setAttribute("power", true)
               when @config.power.offMessage
-                @_setAttribute('power', false)
+                @_setAttribute("power", false)
               else
                 env.logger.debug "#{@name} with id:#{@id}: Message is not harmony with onMessage or offMessage in config.json or with default values"
         )
       
       if @config.color.stateTopic
-        @mqttclient.on('message', (topic, message) =>
+        @mqttclient.on("message", (topic, message) =>
           if @config.color.stateTopic ==  topic
             message = message.toString()
             @color =  Color(message).rgb()
