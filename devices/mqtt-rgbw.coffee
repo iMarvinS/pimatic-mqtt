@@ -1,5 +1,4 @@
 module.exports = (env) ->
-
   Promise = env.require "bluebird"
   t = env.require("decl-api").types
   _ = env.require("lodash")
@@ -40,13 +39,17 @@ module.exports = (env) ->
         description: "turns the light off"
       toggle:
         description: "turns the light on or off"
-      setWhite:
-        description: "set the light to white color"
       setColor:
         description: "set a light color"
         params:
           colorCode:
             type: t.string
+      setMode:
+        description: "Set mode, white or color"
+        params:
+          mode:
+            type: t.string
+            enum: ["color", "white"]
       setBrightness:
         description: "set the light brightness"
         params:
@@ -75,21 +78,32 @@ module.exports = (env) ->
 
       if @config.power.stateTopic
         @mqttclient.on("message", (topic, message) =>
-          if @config.power.stateTopic ==  topic
+          if @config.power.stateTopic == topic
             switch message.toString()
               when @config.power.onMessage
-                @_setAttribute("power", true)
+                @turnOn()
               when @config.power.offMessage
-                @_setAttribute("power", false)
+                @turnOff()
               else
                 env.logger.debug "#{@name} with id:#{@id}: Message is not harmony with onMessage or offMessage in config.json or with default values"
         )
       
       if @config.color.stateTopic
         @mqttclient.on("message", (topic, message) =>
-          if @config.color.stateTopic ==  topic
+          if @config.color.stateTopic == topic
             message = message.toString()
-            @color =  Color(message).rgb()
+            color = _parseColor(message)
+            @_setAttribute("color", Color(color).rgb())
+        )
+
+      if @config.white.stateTopic
+        @mqttclient.on("message", (topic, message) =>
+          if @config.white.stateTopic == topic
+            message = message.toString()
+            brightness = _parseBrightness(message)
+
+            if @mode == "white"
+              @_setAttribute("brightness", brightness)
         )
 
       super()
@@ -99,23 +113,33 @@ module.exports = (env) ->
         @mqttclient.subscribe(@config.power.stateTopic, { qos: @config.qos })
       if @config.color.stateTopic
         @mqttclient.subscribe(@config.color.stateTopic, { qos: @config.qos })
+      if @config.white.stateTopic
+        @mqttclient.subscribe(@config.white.stateTopic, { qos: @config.qos })
 
     turnOn: -> 
       if @config.power.topic 
         @mqttclient.publish(@config.power.topic, @config.power.onMessage, { qos: @config.qos, retain: @config.power.retain })
-      else 
-        message = @_formatColor(@_applyBrightnessOnColor(@color)) #Apply brightness
+      else if @mode == "color"
+        message = @_formatColor(@_applyBrightnessOnColor(@color))
         @mqttclient.publish(@config.color.topic, message, { qos: @config.qos, retain: @config.color.retain })
+      else 
+        message = @_formatBrightness(100)
+        @mqttclient.publish(@config.white.topic, message, { qos: @config.qos, retain: @config.white.retain })
+
       _setAttribute("power", true)
       return Promise.resolve()
 
     turnOff: -> 
       if @config.power.topic 
         @mqttclient.publish(@config.power.topic, @config.power.offMessage, { qos: @config.qos, retain: @config.power.retain })
-      else 
+      else if @mode == "color"
         color = Color("#00000")
         message = @_formatColor(color)
         @mqttclient.publish(@config.color.topic, message, { qos: @config.qos, retain: @config.color.retain })
+      else 
+        message = @_formatBrightness(0) 
+        @mqttclient.publish(@config.white.topic, message, { qos: @config.qos, retain: @config.white.retain })
+
       _setAttribute("power", false)
       return Promise.resolve()
 
@@ -126,19 +150,22 @@ module.exports = (env) ->
       @_setAttribute("color", newColor)
       return Promise.resolve()
 
-    setWhite: -> 
-      color = Color("#111111")
-      message = @_formatColor(color)
-      @mqttclient.publish(@config.color.topic, message, { qos: @config.qos, retain: @config.color.retain })
-      @_setAttribute("color", color)
-      return Promise.resolve()
-
     setBrightness: (brightnessValue) -> 
-      color = @_applyBrightnessOnColor(@color, brightnessValue)
-      message = @_formatColor(color)
-      @mqttclient.publish(@config.color.topic, message, { qos: @config.qos, retain: @config.color.retain })
-      @_setAttribute("brightness", brightnessValue)
-      Promise.resolve()
+      if @mode == "color"
+        color = @_applyBrightnessOnColor(@color, brightnessValue)
+        message = @_formatColor(color)
+        @mqttclient.publish(@config.color.topic, message, { qos: @config.qos, retain: @config.color.retain })
+        @_setAttribute("color", color)
+      else
+        @_setAttribute("brightness", brightnessValue)
+        Promise.resolve()
+
+    setMode: (mode) -> 
+      @_setAttribute("mode", mode)
+      if @mode == "color"
+        @setColor(@color)
+      else
+        @setBrightness(@brightness)
 
     toggle: ->
       if @power is false then return @turnOn() else return @turnOff()
@@ -146,12 +173,15 @@ module.exports = (env) ->
     getPower: -> Promise.resolve @power
     getColor: -> Promise.resolve @color
     getBrightness: -> Promise.resolve @brightness
+    getMode: -> Promise.resolve @mode
 
     destroy: () ->
       if @config.power.stateTopic
         @mqttclient.unsubscribe(@config.power.stateTopic)
       if @config.color.stateTopic
         @mqttclient.unsubscribe(@config.color.stateTopic)
+      if @config.white.stateTopic
+        @mqttclient.unsubscribe(@config.white.stateTopic)
       super()
 
     _setAttribute: (attributeName, value) ->
@@ -159,14 +189,22 @@ module.exports = (env) ->
         @[attributeName] = value
         @emit attributeName, value
 
+    _formatBrightness: (brightness) -> # format from config
+      return @brightness
+
     _formatColor: (color) -> 
-      return  "#{@color.r},#{color.g},#{color.b}"
+      return  "#{@color.r},#{color.g},#{color.b}" # format from config
+
+    _parseBrightness: (value) ->
+      return parseInt(value)
+
+    _parseColor: (value) ->
+      return value
 
     _applyBrightnessOnColor: (color, brightness) ->
       color = _.assign({}, color)
       color.r  = color.r * brightness / 100
       color.g = color.g * brightness / 100
       color.b  = color.b * brightness / 100
-
 
 

@@ -311,7 +311,7 @@ module.exports = {
         type: "boolean"
         default: false
   }
-  MqttRGBLight: {
+  MqttRgbw: {
   title: "MqttRGBLight config options"
   type: "object"
   properties:
@@ -344,6 +344,19 @@ module.exports = {
           required: true
         stateTopic:
           description: "Topic that communicates color state, if exists"
+          type: "string"
+        retain:
+          description: "If the published message should have the retain flag on or not."
+          type: "boolean"
+          default: false
+    white: 
+      properties:
+        topic:
+          description: "Topic for white channel"
+          type: "string"
+          required: true
+        stateTopic:
+          description: "Topic that communicates white state, if exists"
           type: "string"
         retain:
           description: "If the published message should have the retain flag on or not."
