@@ -93,7 +93,8 @@ module.exports = (env) ->
           if @config.color.stateTopic == topic
             message = message.toString()
             color = _parseColor(message)
-            @_setAttribute("color", Color(color).rgb())
+            color = Color(color).rgb()
+            @_setAttribute("color", color)
         )
 
       if @config.white.stateTopic

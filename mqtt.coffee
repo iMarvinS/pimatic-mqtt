@@ -57,7 +57,7 @@ module.exports = (env) ->
           host: brokerConfig.host
           port: brokerConfig.port
           username: brokerConfig.username
-          password: if brokerConfig.password then new Buffer(brokerConfig.password) else false
+          password: if brokerConfig.password then new Buffer(brokerConfig.password) else null
           keepalive: brokerConfig.keepalive
           clientId: brokerConfig.clientId or 'pimatic_' + Math.random().toString(16).substr(2, 8)
           protocolId: brokerConfig.protocolId

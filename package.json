@@ -26,7 +26,8 @@
   "dependencies": {
     "color": "^3.0.0",
     "flat": ">=2.0.0",
-    "mqtt": ">=2.0.0"
+    "mqtt": ">=2.0.0",
+    "cassert": ">=0.1.2"
   },
   "engines": {
     "node": ">= 4",

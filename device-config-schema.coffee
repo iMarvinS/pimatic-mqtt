@@ -369,4 +369,3 @@ module.exports = {
       enum: [0, 1, 2]
   }
 }
-}
